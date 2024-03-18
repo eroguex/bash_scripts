@@ -1,0 +1,66 @@
+#!/bin/bash
+
+# Colours
+Yellow='\033[0;33m'
+NC='\033[0m'
+
+#Start of script
+echo "Please enter domain name: ";
+read domain;
+
+while [ -z "$domain" ]
+do
+     echo "Please enter domain name: ";
+     read domain;
+done
+
+# Find the right apache configuration file for specified domain
+echo "Finding your domains configuration path..."
+sleep 2
+confpath=$(grep -Ril "$domain" /etc/apache2/sites-enabled);
+sleep 2
+if [ -z "$confpath" ]
+then
+     echo "Configuration file for this domain does not exist";
+     exit;
+else
+echo -e "configuration file: ${Yellow}$confpath${NC}"
+fi
+
+# Find DocumentRoot for specified domain
+echo "Finding your site files..."
+sleep 2
+docroot=$(cat $confpath | grep DocumentRoot | cut -d ' ' -f 2);
+sleep 2
+echo -e "Document root: ${Yellow}$docroot${NC}"
+sleep 2
+
+# Locating database details
+echo "Finding database credentials..."
+sleep 1
+dbname=$(cat $docroot/wp-config.php | grep DB_NAME | cut -d\' -f 4)
+dbuser=$(cat $docroot/wp-config.php | grep DB_USER | cut -d\' -f 4)
+dbpass=$(cat $docroot/wp-config.php | grep DB_PASSWORD | cut -d\' -f 4)
+dbhost=$(cat $docroot/wp-config.php | grep DB_HOST | cut -d\' -f 4 | cut -d : -f 1)
+dbport=$(cat $docroot/wp-config.php | grep DB_HOST | cut -d\' -f 4 | cut -d : -f 2)
+
+# Required for wp-config files where port is not specified
+if [[ "$dbport" = "localhost" ]];
+then
+     dbport="3306";
+else
+     dbport=$(cat $docroot/wp-config.php | grep DB_HOST | cut -d\' -f 4 | cut -d : -f 2);
+fi
+
+#Creating a dump of the DB into the webspace
+echo "Dumping database..."
+sleep 2
+mysqldump --no-tablespaces -P $dbport -h $dbhost  -u $dbuser -p$dbpass $dbname | gzip > $docroot/dblocal.sql.gz
+echo "Database dumped"
+sleep 2
+
+# Create tar gz of DocumentRoot/webspace
+echo -e "Creating backup of site files in ${Yellow}$docroot${NC}"
+sleep 2
+tar -czf $domain.tar.gz -C $docroot .
+echo "backup completed"
