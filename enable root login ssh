@@ -1,0 +1,21 @@
+#!/bin/bash
+
+# Check if the script is being run as root
+if [[ $EUID -ne 0 ]]; then
+   echo "This script must be run as root" 
+   exit 1
+fi
+
+# Check if SSH configuration allows root login with password
+if grep -q "^PermitRootLogin.*yes" /etc/ssh/sshd_config && grep -q "^PasswordAuthentication.*yes" /etc/ssh/sshd_config; then
+    echo "Root login via SSH using a password is already enabled."
+else
+    # Enable root login with password in SSH configuration
+    sed -i 's/^PermitRootLogin.*/PermitRootLogin yes/' /etc/ssh/sshd_config
+    sed -i 's/^PasswordAuthentication.*/PasswordAuthentication yes/' /etc/ssh/sshd_config
+
+    # Restart SSH service
+    systemctl restart sshd
+
+    echo "Root login via SSH using a password has been enabled."
+fi
