@@ -1,0 +1,14 @@
+#!/bin/bash
+
+# create backup directory
+backup_dir="/root/mysql_backup"
+
+if [[ ! -d $backup_dir ]]; then
+    mkdir -p $backup_dir || error "Unable to create backup directory $backup_dir"
+fi
+
+# Create list of databases, with exclusions
+cd /root && /usr/sbin/plesk db -e "show databases" | grep -v -E "^Database|information_schema|performance_schema|phpmyadmin" > dblist.txt
+
+# Create a dump of each database in the created file.
+cat /root/dblist.txt | while read i; do /usr/sbin/plesk db dump "$i" > $backup_dir/"$i".sql; done
