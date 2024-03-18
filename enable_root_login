@@ -6,6 +6,9 @@ if [[ $EUID -ne 0 ]]; then
    exit 1
 fi
 
+# Backup the original sshd_config file
+cp /etc/ssh/sshd_config /etc/ssh/sshd_config_backup
+
 # Check if SSH configuration allows root login with password
 if grep -q "^PermitRootLogin.*yes" /etc/ssh/sshd_config && grep -q "^PasswordAuthentication.*yes" /etc/ssh/sshd_config; then
     echo "Root login via SSH using a password is already enabled."
